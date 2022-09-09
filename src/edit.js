@@ -341,8 +341,8 @@ export default function Edit({ attributes, setAttributes }) {
 				<p>Error: No featured posts</p>
 			) : (
 				<>
-					<div class="slideshow-container">
-						<div class="mySlides fade">
+					<div className="slideshow-container">
+						<div>
 							<img src={previewImg} />
 							<div style={{ color: attributes.headlineColor }}>
 								{previewHeadline}
@@ -354,9 +354,9 @@ export default function Edit({ attributes, setAttributes }) {
 						</div>
 					</div>
 					<div className="center">
-						<span class="dot"></span>
-						<span class="dot"></span>
-						<span class="dot"></span>
+						<span className="dot"></span>
+						<span className="dot"></span>
+						<span className="dot"></span>
 					</div>
 				</>
 			)}
