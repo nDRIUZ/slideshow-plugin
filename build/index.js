@@ -43,6 +43,7 @@ function Edit(_ref) {
   const [previewImg, setPreviewImg] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
   const [previewHeadline, setPreviewHeadline] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
   const [previewText, setPreviewText] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
+  const [postDate, setPostDate] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
   (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(async () => {
     // fetch all categories
     fetch(`${attributes.apiUrl}wp/v2/categories?per_page=100`).then(res => res.json()).then(result => {
@@ -96,6 +97,7 @@ function Edit(_ref) {
       });
       setPreviewHeadline(result[0].title.rendered);
       setPreviewText(result[0].excerpt.rendered);
+      setPostDate(result[0].date.split("T")[0]);
       setIsLoading(false);
     }, error => {
       setError(true);
@@ -132,6 +134,7 @@ function Edit(_ref) {
         });
         setPreviewHeadline(result[0].title.rendered);
         setPreviewText(result[0].excerpt.rendered);
+        setPostDate(result[0].date.split("T")[0]);
         setIsLoading(false);
       }
     }, error => {
@@ -167,29 +170,6 @@ function Edit(_ref) {
       default:
         return;
     }
-  }; // Apply checkbox changes
-
-
-  const checkboxChange = index => {
-    switch (index) {
-      case 0:
-        return setAttributes({
-          arrows: !attributes.arrows
-        });
-
-      case 1:
-        return setAttributes({
-          dots: !attributes.dots
-        });
-
-      case 2:
-        return setAttributes({
-          featured: !attributes.featured
-        });
-
-      default:
-        return;
-    }
   }; // update API url onChange for better UX
 
 
@@ -219,6 +199,17 @@ function Edit(_ref) {
     setAttributes({
       selectedCategory: event.target.value
     });
+  }; // show dots count correctly for user
+
+
+  const getShowDots = () => {
+    let content = [];
+    {
+      for (let i = 0; i < attributes.postsCount; i++) content.push((0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
+        className: "slide-dot"
+      }));
+    }
+    return content;
   };
 
   return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", (0,_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.useBlockProps)(), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.InspectorControls, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
@@ -239,7 +230,8 @@ function Edit(_ref) {
     className: "mb-2",
     value: attributes.postsCount,
     onChange: changePostsCount,
-    min: "1"
+    min: "1",
+    max: "12"
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "category"
   }, "From category:"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("select", {
@@ -268,7 +260,9 @@ function Edit(_ref) {
     id: "featured",
     type: "checkbox",
     defaultChecked: attributes.featured,
-    onChange: e => checkboxChange(2)
+    onChange: () => setAttributes({
+      featured: !attributes.featured
+    })
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "featured",
     className: "button-text"
@@ -314,7 +308,9 @@ function Edit(_ref) {
     id: "arrows",
     type: "checkbox",
     defaultChecked: attributes.arrows,
-    onChange: e => checkboxChange(0)
+    onChange: () => setAttributes({
+      arrows: !attributes.arrows
+    })
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "arrows",
     className: "button-text"
@@ -324,15 +320,19 @@ function Edit(_ref) {
     id: "dots",
     type: "checkbox",
     defaultChecked: attributes.dots,
-    onChange: e => checkboxChange(1)
+    onChange: () => setAttributes({
+      dots: !attributes.dots
+    })
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "dots",
     className: "button-text"
   }, "Show slider dots")))), isLoading && !isError && !noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Loading...") : isError ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: API url is invalid") : noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: No featured posts") : (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "slideshow-container"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: previewImg
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    className: "text-container"
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("h2", {
     style: {
       color: attributes.headlineColor
     }
@@ -343,15 +343,17 @@ function Edit(_ref) {
     dangerouslySetInnerHTML: {
       __html: previewText
     }
-  }))), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
-    className: "center"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
-    className: "dot"
-  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
-    className: "dot"
-  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
-    className: "dot"
-  }))));
+  }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", {
+    style: {
+      color: attributes.textColor
+    }
+  }, postDate)), attributes.arrows ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("a", {
+    class: "prev"
+  }, "\u276E"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("a", {
+    class: "next"
+  }, "\u276F")) : null), attributes.dots ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    className: "dots-container"
+  }, getShowDots()) : null));
 }
 
 /***/ }),

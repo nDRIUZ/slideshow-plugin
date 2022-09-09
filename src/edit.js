@@ -21,6 +21,7 @@ export default function Edit({ attributes, setAttributes }) {
 	const [previewImg, setPreviewImg] = useState();
 	const [previewHeadline, setPreviewHeadline] = useState();
 	const [previewText, setPreviewText] = useState();
+	const [postDate, setPostDate] = useState();
 
 	useEffect(async () => {
 		// fetch all categories
@@ -84,6 +85,7 @@ export default function Edit({ attributes, setAttributes }) {
 						);
 					setPreviewHeadline(result[0].title.rendered);
 					setPreviewText(result[0].excerpt.rendered);
+					setPostDate(result[0].date.split("T")[0]);
 					setIsLoading(false);
 				},
 				(error) => {
@@ -128,6 +130,7 @@ export default function Edit({ attributes, setAttributes }) {
 							);
 						setPreviewHeadline(result[0].title.rendered);
 						setPreviewText(result[0].excerpt.rendered);
+						setPostDate(result[0].date.split("T")[0]);
 						setIsLoading(false);
 					}
 				},
@@ -161,20 +164,6 @@ export default function Edit({ attributes, setAttributes }) {
 		}
 	};
 
-	// Apply checkbox changes
-	const checkboxChange = (index) => {
-		switch (index) {
-			case 0:
-				return setAttributes({ arrows: !attributes.arrows });
-			case 1:
-				return setAttributes({ dots: !attributes.dots });
-			case 2:
-				return setAttributes({ featured: !attributes.featured });
-			default:
-				return;
-		}
-	};
-
 	// update API url onChange for better UX
 	const updateUrl = (event) => {
 		const checkUrl = event.target.value.replace(/ /g, "");
@@ -194,6 +183,16 @@ export default function Edit({ attributes, setAttributes }) {
 	//update category
 	const onCategoryChange = (event) => {
 		setAttributes({ selectedCategory: event.target.value });
+	};
+
+	// show dots count correctly for user
+	const getShowDots = () => {
+		let content = [];
+		{
+			for (let i = 0; i < attributes.postsCount; i++)
+				content.push(<span className="slide-dot"></span>);
+		}
+		return content;
 	};
 
 	return (
@@ -223,6 +222,7 @@ export default function Edit({ attributes, setAttributes }) {
 							value={attributes.postsCount}
 							onChange={changePostsCount}
 							min="1"
+							max="12"
 						/>
 						<label for="category">From category:</label>
 						<select
@@ -252,7 +252,9 @@ export default function Edit({ attributes, setAttributes }) {
 								id="featured"
 								type="checkbox"
 								defaultChecked={attributes.featured}
-								onChange={(e) => checkboxChange(2)}
+								onChange={() =>
+									setAttributes({ featured: !attributes.featured })
+								}
 							/>
 							<label for="featured" className="button-text">
 								Show only Featured posts
@@ -313,7 +315,7 @@ export default function Edit({ attributes, setAttributes }) {
 								id="arrows"
 								type="checkbox"
 								defaultChecked={attributes.arrows}
-								onChange={(e) => checkboxChange(0)}
+								onChange={() => setAttributes({ arrows: !attributes.arrows })}
 							/>
 							<label for="arrows" className="button-text">
 								Show arrow navigation
@@ -324,7 +326,7 @@ export default function Edit({ attributes, setAttributes }) {
 								id="dots"
 								type="checkbox"
 								defaultChecked={attributes.dots}
-								onChange={(e) => checkboxChange(1)}
+								onChange={() => setAttributes({ dots: !attributes.dots })}
 							/>
 							<label for="dots" className="button-text">
 								Show slider dots
@@ -342,22 +344,28 @@ export default function Edit({ attributes, setAttributes }) {
 			) : (
 				<>
 					<div className="slideshow-container">
-						<div>
-							<img src={previewImg} />
-							<div style={{ color: attributes.headlineColor }}>
+						<img src={previewImg} />
+
+						<div className="text-container">
+							<h2 style={{ color: attributes.headlineColor }}>
 								{previewHeadline}
-							</div>
+							</h2>
 							<div
 								style={{ color: attributes.textColor }}
 								dangerouslySetInnerHTML={{ __html: previewText }}
 							></div>
+							<p style={{ color: attributes.textColor }}>{postDate}</p>
 						</div>
+						{attributes.arrows ? (
+							<>
+								<a class="prev">&#10094;</a>
+								<a class="next">&#10095;</a>
+							</>
+						) : null}
 					</div>
-					<div className="center">
-						<span className="dot"></span>
-						<span className="dot"></span>
-						<span className="dot"></span>
-					</div>
+					{attributes.dots ? (
+						<div className="dots-container">{getShowDots()}</div>
+					) : null}
 				</>
 			)}
 		</div>
