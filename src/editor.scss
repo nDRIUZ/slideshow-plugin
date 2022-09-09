@@ -1,0 +1,62 @@
+// settings style
+.controls {
+    padding: 8px;
+    border-top: 1px solid rgb(221, 221, 221);
+}
+
+.controls h2 {
+    font-size: 1.2em;
+    margin-bottom: 1em;
+}
+
+.controls-item {
+    display: flex;
+    margin-bottom: 1px;
+    border: 1px solid rgb(221, 221, 221);
+    width: 100%;
+    align-items: center;
+    cursor: pointer;
+}
+
+.controls-item:hover {
+    color: #006ba1;
+}
+
+.controls-item input[type=checkbox] {
+    margin: 8px 0 8px 8px;
+}
+
+.button-text {
+    margin-left: 8px;
+}
+
+// color picker
+.dot {
+    height: 2rem;
+    width: 2rem;
+    border-radius: 50%;
+    margin: 0.25rem;
+}
+
+.controls-color {
+    padding: 8px;
+}
+
+.hidden {
+    display: hidden;
+}
+
+// posts control
+.posts-cont {
+    display: flex;
+    flex-direction: column;
+}
+
+// other
+.w-100 {
+    width: 100%;
+}
+
+.mb-2 {
+    margin-bottom: 0.75em;
+}
