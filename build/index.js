@@ -20,9 +20,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @wordpress/block-editor */ "@wordpress/block-editor");
 /* harmony import */ var _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _editor_scss__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./editor.scss */ "./src/editor.scss");
-/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
-/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _editor_scss__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./editor.scss */ "./src/editor.scss");
+
 
 
 
@@ -44,7 +45,8 @@ function Edit(_ref) {
   const [previewHeadline, setPreviewHeadline] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
   const [previewText, setPreviewText] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
   const [postDate, setPostDate] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)();
-  (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(async () => {
+  const [posts, setPosts] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)([]);
+  (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
     // fetch all categories
     fetch(`${attributes.apiUrl}wp/v2/categories?per_page=100`).then(res => res.json()).then(result => {
       setError(false);
@@ -68,56 +70,39 @@ function Edit(_ref) {
       setError(true);
       console.log(error);
     });
-  }, [attributes.apiUrl]);
-  (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
-    if (allCat.length > 0) {
-      setIsLoading(false);
-    }
-  }, [allCat]); // update the preview when category is changed
+  }, [attributes.apiUrl]); // update the preview on changes and save data
+
+  (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(async () => {
+    await getData();
+  }, [attributes.featured, attributes.selectedCategory, attributes.apiUrl]); // update the preview on changes and save data
 
   (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
-    setIsLoading(true); // fetch latest post for preview
+    if (posts.length > 0) {
+      console.log(posts); // save posts
+
+      setAttributes({
+        posts: posts.slice(0, attributes.postsCount)
+      }); // set preview data
+
+      setPreviewImg(posts[0].img);
+      setPreviewHeadline(posts[0].title);
+      setPreviewText(posts[0].excerpt);
+      setPostDate(posts[0].date);
+    }
+  }, [posts.length, attributes.postsCount]);
+
+  async function getData() {
+    setIsLoading(true); // fetch latest post for preview, take 12 results as it's maximum slide count
 
     let fetchPostUrl = ``;
 
     if (attributes.selectedCategory != 0) {
-      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}`;
+      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}&sticky=${attributes.featured}&per_page=12`;
     } else {
-      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts`;
+      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?sticky=${attributes.featured}&per_page=12`;
     }
 
-    fetch(fetchPostUrl).then(res => res.json()).then(result => {
-      setError(false);
-      fetch(`${attributes.apiUrl}wp/v2/media/${result[0].featured_media}`).then(res => res.json()).then(result => {
-        setError(false);
-        setPreviewImg(result.source_url);
-      }, error => {
-        setError(true);
-        console.log(error);
-      });
-      setPreviewHeadline(result[0].title.rendered);
-      setPreviewText(result[0].excerpt.rendered);
-      setPostDate(result[0].date.split("T")[0]);
-      setIsLoading(false);
-    }, error => {
-      setError(true);
-      console.log(error);
-    });
-  }, [attributes.selectedCategory]); // update the preview for "only featured"
-
-  (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
-    setIsLoading(true); // fetch latest post for preview
-
-    let fetchPostUrl = ``;
-
-    if (attributes.selectedCategory != 0) {
-      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}&sticky=${attributes.featured}`;
-    } else {
-      fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?sticky=${attributes.featured}`;
-    }
-
-    console.log(fetchPostUrl);
-    fetch(fetchPostUrl).then(res => res.json()).then(result => {
+    await fetch(fetchPostUrl).then(res => res.json()).then(result => {
       setError(false);
 
       if (!Object.keys(result).length) {
@@ -125,23 +110,28 @@ function Edit(_ref) {
         setNoFeatured(true);
       } else {
         setNoFeatured(false);
-        fetch(`${attributes.apiUrl}wp/v2/media/${result[0].featured_media}`).then(res => res.json()).then(result => {
-          setError(false);
-          setPreviewImg(result.source_url);
-        }, error => {
-          setError(true);
-          console.log(error);
+        result.forEach(async element => {
+          const el = {};
+          await fetch(`${attributes.apiUrl}wp/v2/media/${element.featured_media}`).then(res => res.json()).then(result => {
+            el.img = result.source_url;
+          }, error => {
+            setError(true);
+            console.log(error);
+          });
+          el.title = element.title.rendered;
+          el.excerpt = element.excerpt.rendered;
+          el.date = element.date.split("T")[0];
+          el.link = element.link;
+          setPosts(posts => [...posts, el]);
         });
-        setPreviewHeadline(result[0].title.rendered);
-        setPreviewText(result[0].excerpt.rendered);
-        setPostDate(result[0].date.split("T")[0]);
-        setIsLoading(false);
       }
     }, error => {
       setError(true);
       console.log(error);
     });
-  }, [attributes.featured]); // Show pickers
+    setIsLoading(false);
+  } // Show pickers
+
 
   const showColorPickerControls = index => {
     let tempArray = [...showColorPicker]; // close other color settings
@@ -214,7 +204,7 @@ function Edit(_ref) {
 
   return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", (0,_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.useBlockProps)(), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.InspectorControls, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "controls"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_5__.__experimentalHeading, null, "API url"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("input", {
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.__experimentalHeading, null, "API url"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("input", {
     className: "w-100",
     type: "text",
     name: "apiUrl",
@@ -222,7 +212,7 @@ function Edit(_ref) {
     onChange: updateUrl
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "By default it is set to: ", (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("code", null, attributes.siteUrl))), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "controls posts-cont"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_5__.__experimentalHeading, null, "Posts"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.__experimentalHeading, null, "Posts"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "postsCount"
   }, "Posts count in slider:"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("input", {
     type: "number",
@@ -268,7 +258,7 @@ function Edit(_ref) {
     className: "button-text"
   }, "Show only Featured posts"))), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "controls"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_5__.__experimentalHeading, null, "Colours"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("button", {
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.__experimentalHeading, null, "Colours"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("button", {
     className: "controls-item",
     onClick: () => showColorPickerControls(0)
   }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
@@ -302,7 +292,7 @@ function Edit(_ref) {
     clearable: false
   }))), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "controls"
-  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_5__.__experimentalHeading, null, "Slider settings"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.__experimentalHeading, null, "Slider settings"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "controls-item"
   }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("input", {
     id: "arrows",
@@ -326,7 +316,7 @@ function Edit(_ref) {
   }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("label", {
     for: "dots",
     className: "button-text"
-  }, "Show slider dots")))), isLoading && !isError && !noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Loading...") : isError ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: API url is invalid") : noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: No featured posts") : (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+  }, "Show slider dots")))), isLoading && !isError && !noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Spinner, null) : isError ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: API url is invalid") : noFeatured ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "Error: No featured posts") : (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "slideshow-container"
   }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: previewImg
@@ -399,25 +389,63 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_1__);
 
 
-/**
- * React hook that is used to mark the block wrapper element.
- * It provides all the necessary props like the class name.
- *
- * @see https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-editor/#useblockprops
- */
+function save(_ref) {
+  let {
+    attributes
+  } = _ref;
+  const posts = attributes.posts; // show dots count correctly for user
 
-/**
- * The save function defines the way in which the different attributes should
- * be combined into the final markup, which is then serialized by the block
- * editor into `post_content`.
- *
- * @see https://developer.wordpress.org/block-editor/reference-guides/block-api/block-edit-save/#save
- *
- * @return {WPElement} Element to render.
- */
+  const getShowDots = () => {
+    let content = [];
+    {
+      for (let i = 0; i < attributes.postsCount; i++) content.push((0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("span", {
+        className: "slide-dot",
+        onClick: `currentSlide(${i + 1})`
+      }));
+    }
+    return content;
+  };
 
-function save() {
-  return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", _wordpress_block_editor__WEBPACK_IMPORTED_MODULE_1__.useBlockProps.save(), 'Slideshow Plugin – hello from the saved content!');
+  return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    className: "m-w"
+  }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    className: "slideshow-container",
+    id: "slideshow-container"
+  }, posts.map((value, index) => {
+    return (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+      className: "slide fade"
+    }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+      src: value.img,
+      draggable: "false"
+    }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+      className: "text-container"
+    }, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("h2", {
+      style: {
+        color: attributes.headlineColor
+      }
+    }, value.title), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+      style: {
+        color: attributes.textColor
+      },
+      dangerouslySetInnerHTML: {
+        __html: value.excerpt
+      }
+    }), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", {
+      style: {
+        color: attributes.textColor
+      }
+    }, value.date), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("a", {
+      href: value.link
+    }, "Read more")), attributes.arrows ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("a", {
+      class: "prev",
+      onClick: "plusSlides(-1)"
+    }, "\u276E"), (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("a", {
+      class: "next",
+      onClick: "plusSlides(1)"
+    }, "\u276F")) : null);
+  }), attributes.dots ? (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    className: "dots-container"
+  }, getShowDots()) : null));
 }
 
 /***/ }),

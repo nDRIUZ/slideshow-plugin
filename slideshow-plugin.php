@@ -56,7 +56,16 @@ function create_block_slideshow_plugin_block_init() {
 				'default' => false,
 				'type'    => 'boolean'
 			],
+			'posts' => [
+				'type' => 'array'
+			],
 		]
 	] );	
 }
 add_action( 'init', 'create_block_slideshow_plugin_block_init' );
+
+function block_enqueue_script()
+{   
+    wp_enqueue_script( 'slide-js', plugin_dir_url( __FILE__ ) . 'build/scripts/slide.js' );
+}
+add_action('wp_enqueue_scripts', 'block_enqueue_script');

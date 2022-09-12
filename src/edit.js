@@ -5,6 +5,7 @@ import {
 	ColorPalette,
 	InspectorControls,
 } from "@wordpress/block-editor";
+import { Spinner } from "@wordpress/components";
 import "./editor.scss";
 
 import { __experimentalHeading as Heading } from "@wordpress/components";
@@ -23,7 +24,9 @@ export default function Edit({ attributes, setAttributes }) {
 	const [previewText, setPreviewText] = useState();
 	const [postDate, setPostDate] = useState();
 
-	useEffect(async () => {
+	const [posts, setPosts] = useState([]);
+
+	useEffect(() => {
 		// fetch all categories
 		fetch(`${attributes.apiUrl}wp/v2/categories?per_page=100`)
 			.then((res) => res.json())
@@ -50,63 +53,36 @@ export default function Edit({ attributes, setAttributes }) {
 			);
 	}, [attributes.apiUrl]);
 
-	useEffect(() => {
-		if (allCat.length > 0) {
-			setIsLoading(false);
-		}
-	}, [allCat]);
+	// update the preview on changes and save data
+	useEffect(async () => {
+		await getData();
+	}, [attributes.featured, attributes.selectedCategory, attributes.apiUrl]);
 
-	// update the preview when category is changed
+	// update the preview on changes and save data
 	useEffect(() => {
+		if (posts.length > 0) {
+			console.log(posts);
+			// save posts
+			setAttributes({ posts: posts.slice(0, attributes.postsCount) });
+
+			// set preview data
+			setPreviewImg(posts[0].img);
+			setPreviewHeadline(posts[0].title);
+			setPreviewText(posts[0].excerpt);
+			setPostDate(posts[0].date);
+		}
+	}, [posts.length, attributes.postsCount]);
+
+	async function getData() {
 		setIsLoading(true);
-		// fetch latest post for preview
+		// fetch latest post for preview, take 12 results as it's maximum slide count
 		let fetchPostUrl = ``;
 		if (attributes.selectedCategory != 0) {
-			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}`;
+			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}&sticky=${attributes.featured}&per_page=12`;
 		} else {
-			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts`;
+			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?sticky=${attributes.featured}&per_page=12`;
 		}
-		fetch(fetchPostUrl)
-			.then((res) => res.json())
-			.then(
-				(result) => {
-					setError(false);
-					fetch(`${attributes.apiUrl}wp/v2/media/${result[0].featured_media}`)
-						.then((res) => res.json())
-						.then(
-							(result) => {
-								setError(false);
-								setPreviewImg(result.source_url);
-							},
-							(error) => {
-								setError(true);
-								console.log(error);
-							}
-						);
-					setPreviewHeadline(result[0].title.rendered);
-					setPreviewText(result[0].excerpt.rendered);
-					setPostDate(result[0].date.split("T")[0]);
-					setIsLoading(false);
-				},
-				(error) => {
-					setError(true);
-					console.log(error);
-				}
-			);
-	}, [attributes.selectedCategory]);
-
-	// update the preview for "only featured"
-	useEffect(() => {
-		setIsLoading(true);
-		// fetch latest post for preview
-		let fetchPostUrl = ``;
-		if (attributes.selectedCategory != 0) {
-			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?categories=${attributes.selectedCategory}&sticky=${attributes.featured}`;
-		} else {
-			fetchPostUrl = `${attributes.apiUrl}wp/v2/posts?sticky=${attributes.featured}`;
-		}
-		console.log(fetchPostUrl);
-		fetch(fetchPostUrl)
+		await fetch(fetchPostUrl)
 			.then((res) => res.json())
 			.then(
 				(result) => {
@@ -116,22 +92,27 @@ export default function Edit({ attributes, setAttributes }) {
 						setNoFeatured(true);
 					} else {
 						setNoFeatured(false);
-						fetch(`${attributes.apiUrl}wp/v2/media/${result[0].featured_media}`)
-							.then((res) => res.json())
-							.then(
-								(result) => {
-									setError(false);
-									setPreviewImg(result.source_url);
-								},
-								(error) => {
-									setError(true);
-									console.log(error);
-								}
-							);
-						setPreviewHeadline(result[0].title.rendered);
-						setPreviewText(result[0].excerpt.rendered);
-						setPostDate(result[0].date.split("T")[0]);
-						setIsLoading(false);
+						result.forEach(async (element) => {
+							const el = {};
+							await fetch(
+								`${attributes.apiUrl}wp/v2/media/${element.featured_media}`
+							)
+								.then((res) => res.json())
+								.then(
+									(result) => {
+										el.img = result.source_url;
+									},
+									(error) => {
+										setError(true);
+										console.log(error);
+									}
+								);
+							el.title = element.title.rendered;
+							el.excerpt = element.excerpt.rendered;
+							el.date = element.date.split("T")[0];
+							el.link = element.link;
+							setPosts((posts) => [...posts, el]);
+						});
 					}
 				},
 				(error) => {
@@ -139,7 +120,8 @@ export default function Edit({ attributes, setAttributes }) {
 					console.log(error);
 				}
 			);
-	}, [attributes.featured]);
+		setIsLoading(false);
+	}
 
 	// Show pickers
 	const showColorPickerControls = (index) => {
@@ -336,7 +318,7 @@ export default function Edit({ attributes, setAttributes }) {
 				</InspectorControls>
 			}
 			{isLoading && !isError && !noFeatured ? (
-				<p>Loading...</p>
+				<Spinner />
 			) : isError ? (
 				<p>Error: API url is invalid</p>
 			) : noFeatured ? (

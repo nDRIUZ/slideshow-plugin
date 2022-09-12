@@ -1,24 +1,57 @@
-/**
- * React hook that is used to mark the block wrapper element.
- * It provides all the necessary props like the class name.
- *
- * @see https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-editor/#useblockprops
- */
-import { useBlockProps } from '@wordpress/block-editor';
+import { useBlockProps } from "@wordpress/block-editor";
 
-/**
- * The save function defines the way in which the different attributes should
- * be combined into the final markup, which is then serialized by the block
- * editor into `post_content`.
- *
- * @see https://developer.wordpress.org/block-editor/reference-guides/block-api/block-edit-save/#save
- *
- * @return {WPElement} Element to render.
- */
-export default function save() {
+export default function save({ attributes }) {
+	const posts = attributes.posts;
+
+	// show dots count correctly for user
+	const getShowDots = () => {
+		let content = [];
+		{
+			for (let i = 0; i < attributes.postsCount; i++)
+				content.push(
+					<span className="slide-dot" onClick={`currentSlide(${i + 1})`}></span>
+				);
+		}
+		return content;
+	};
+
 	return (
-		<p { ...useBlockProps.save() }>
-			{ 'Slideshow Plugin – hello from the saved content!' }
-		</p>
+		<div className="m-w">
+			<div className="slideshow-container" id="slideshow-container">
+				{posts.map((value, index) => {
+					return (
+						<div className="slide fade">
+							<img src={value.img} draggable="false" />
+
+							<div className="text-container">
+								<h2 style={{ color: attributes.headlineColor }}>
+									{value.title}
+								</h2>
+								<div
+									style={{ color: attributes.textColor }}
+									dangerouslySetInnerHTML={{ __html: value.excerpt }}
+								></div>
+								<p style={{ color: attributes.textColor }}>{value.date}</p>
+								<a href={value.link}>Read more</a>
+							</div>
+
+							{attributes.arrows ? (
+								<>
+									<a class="prev" onClick="plusSlides(-1)">
+										&#10094;
+									</a>
+									<a class="next" onClick="plusSlides(1)">
+										&#10095;
+									</a>
+								</>
+							) : null}
+						</div>
+					);
+				})}
+				{attributes.dots ? (
+					<div className="dots-container">{getShowDots()}</div>
+				) : null}
+			</div>
+		</div>
 	);
 }
